@@ -1,4 +1,5 @@
 import { createGlobalStyle } from 'styled-components';
+import { colors } from './variables';
 
 export default createGlobalStyle`
     * {
@@ -7,6 +8,7 @@ export default createGlobalStyle`
 
     body {
         font-family: 'Inter', sans-serif;
+        background-color: ${colors.white};
         margin: 0;
     }
     
@@ -23,6 +25,11 @@ export default createGlobalStyle`
     h6,
     p {
         margin: 0;
+    }
+
+    p {
+        font-size: 16px;
+        line-height: 19px;
     }
 
     a {

@@ -23,6 +23,7 @@ const Header = () => {
 	const { isLoading } = notificationsInfoQuery;
 	const [notificationsVisible, setNotificationsVisible] = useState(false);
 
+	// Toggle notifications
 	const handleNotificationsVisible = () => {
 		setNotificationsVisible(!notificationsVisible);
 	};

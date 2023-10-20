@@ -12,7 +12,7 @@ const notificationLimit = 10;
 const getNotificationsInfo = async (page: number, limit: number) => {
 	const response = await axios
 		.get(
-			`http://localhost:3001/notifications?_page=${page}&_limit=${limit}`
+			`http://localhost:3001/notifications?_page=${page}&_limit=${limit}&_sort=createdAt&_order=desc`
 		)
 		.then((res) => {
 			return res;
@@ -34,6 +34,7 @@ const NotificationContextProvider = ({ children }: IContext) => {
 		gcTime: Infinity,
 	});
 
+	// Setting total count and unseen notifications number
 	useEffect(() => {
 		setTotalCount(
 			parseFloat(notificationsInfoQuery.data?.headers['x-total'])

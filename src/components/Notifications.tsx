@@ -1,7 +1,8 @@
-import { Fragment, useEffect, useState } from 'react';
+/* eslint-disable no-mixed-spaces-and-tabs */
+import { useState } from 'react';
 import formatDistanceToNow from 'date-fns/formatDistanceToNow';
 import axios from 'axios';
-import { useInfiniteQuery } from '@tanstack/react-query';
+import { useInfiniteQuery, useMutation } from '@tanstack/react-query';
 import { parseLinkHeader } from '../utils/parseLinkHeader';
 
 // Assets
@@ -27,92 +28,95 @@ import { NotificationImage } from './Notification/style';
 
 const notificationLimit = 10;
 
-const getNotifications = async (page: number, limit: number) => {
+const getNotifications = async (
+	page: string,
+	limit: number,
+	isItSeen: boolean
+) => {
+	const seenParam = isItSeen ? 'true' : 'false';
+
 	const response = await axios
 		.get(
-			`http://localhost:3001/notifications?_page=${page}&_limit=${limit}`
+			`http://localhost:3001/notifications?_page=${page}&_limit=${limit}&_sort=createdAt&_order=desc&_seen=${seenParam}`
 		)
 		.then((res) => {
+			console.log(res.data);
 			return res;
 		});
 
 	return response;
 };
 
-const getUnreadNotifications = async () => {
-	const response = await axios
-		.get(`http://localhost:3001/notifications?seen=false`)
-		.then((res) => {
-			return res;
-		});
+// const getUnreadNotifications = async () => {
+// 	const response = await axios
+// 		.get(
+// 			`http://localhost:3001/notifications?seen=false&_sort=createdAt&_order=desc`
+// 		)
+// 		.then((res) => {
+// 			return res;
+// 		});
 
-	return response;
-};
+// 	return response;
+// };
 
 const Notifications = () => {
-	const { page, notificationsInfoQuery, setPage, totalCount, totalUnseen } =
-		useNotificationAPI();
+	const { notificationsInfoQuery, totalUnseen } = useNotificationAPI();
 	const { isLoading } = notificationsInfoQuery;
-	const [allNotifications, setShowAllNotifications] =
-		useState<boolean>(false);
-	const [unreadNotifications, setShowUnreadNotifications] =
-		useState<boolean>(false);
+	const [allNotifications, setShowAllNotifications] = useState<boolean>(true);
+	const [unread, setUnread] = useState(false);
+	const [isSeen, setIsSeen] = useState<boolean>(false);
 
 	const notificationsQuery = useInfiniteQuery({
-		queryKey: ['notifications', page],
-		queryFn: () => getNotifications(page, notificationLimit),
+		queryKey: [
+			'notifications-infinite',
+			unread === true ? 'unread' : 'all',
+		],
+		queryFn: ({ pageParam }) =>
+			getNotifications(pageParam, notificationLimit, !allNotifications),
 		enabled: true,
 		staleTime: Infinity,
 		gcTime: Infinity,
-		initialPageParam: 1,
+		initialPageParam: '1',
 		getNextPageParam: (lastPage) => {
 			const nextPage = parseLinkHeader(lastPage.headers['link']);
 
 			if (nextPage) {
-				return nextPage.next.url;
-			} else {
-				return undefined;
+				if (nextPage.next._page === '10') {
+					return nextPage.last._page;
+				} else {
+					return nextPage.next._page;
+				}
 			}
 		},
 	});
 
-	console.log(notificationsQuery);
-	console.log(notificationsInfoQuery);
-
-	const unreadNotificationsQuery = useInfiniteQuery({
-		queryKey: ['unread-notifications'],
-		queryFn: () => getUnreadNotifications(),
-		enabled: true,
-		staleTime: Infinity,
-		gcTime: Infinity,
-		initialPageParam: 1,
-		getNextPageParam: (lastPage) => {
-			return lastPage.data;
-		},
-	});
+	// const unreadNotificationsQuery = useInfiniteQuery({
+	// 	queryKey: ['unread-notifications'],
+	// 	queryFn: () => getUnreadNotifications(),
+	// 	enabled: true,
+	// 	staleTime: Infinity,
+	// 	gcTime: Infinity,
+	// 	initialPageParam: '1',
+	// 	getNextPageParam: (lastPage) => {
+	// 		return lastPage.data;
+	// 	},
+	// });
 
 	const { fetchNextPage, hasNextPage, data } = notificationsQuery;
 
-	// console.log(unreadNotificationsQuery);
+	const allNotificationsSeen = useMutation({
+		mutationFn: (isSeen: boolean) =>
+			axios
+				.put(`http://localhost:3001/notifications`, {
+					seen: isSeen,
+				})
+				.then((res) => {
+					console.log(res.data);
+					return res.data;
+				}),
+	});
 
-	const showAllNotifications = () => {
-		setShowAllNotifications(true);
-		setShowUnreadNotifications(false);
-	};
-
-	const showUnreadNotifications = () => {
-		setShowUnreadNotifications(true);
-		setShowAllNotifications(false);
-	};
-
-	const loadMore = () => {
-		setPage((page) => page + 1);
-		fetchNextPage();
-	};
-
-	// console.log(newPages, 'new pages');
-	// console.log(newPage, 'NEW PAGE');
-	// console.log(prevPage, 'prev page');
+	console.log(notificationsQuery);
 
 	return (
 		<NotificationsStyled>
@@ -131,46 +135,90 @@ const Notifications = () => {
 								</CountSpanStyled>
 							)}
 						</div>
-						<button>Mark all as unread</button>
+						<button
+							onClick={() => [
+								setIsSeen(true),
+								allNotificationsSeen.mutate(isSeen),
+							]}
+						>
+							Mark all as unread
+						</button>
 					</NotificationsUpperContent>
 					<NotificationsBottomContent>
-						<button onClick={showAllNotifications}>All</button>
-						<button onClick={showUnreadNotifications}>
+						<button
+							onClick={() => [
+								setShowAllNotifications(true),
+								setUnread(false),
+							]}
+						>
+							All
+						</button>
+						<button
+							onClick={() => [
+								setShowAllNotifications(false),
+								setUnread(true),
+							]}
+						>
 							Unread
 						</button>
 					</NotificationsBottomContent>
 				</>
 			) : null}
-			{data?.pages.map((page) => (
-				<>
-					{page.data.map((notifications: INotification) => {
-						const { id, body, createdAt, user } = notifications;
+			{data
+				? data?.pages.map((page) => (
+						<>
+							{page.data.map((notifications: INotification) => {
+								const { id, body, createdAt, user } =
+									notifications;
 
-						const dateCreated = formatDistanceToNow(
-							new Date(createdAt)
-						);
+								const dateCreated = formatDistanceToNow(
+									new Date(createdAt)
+								);
 
-						return (
-							<Notification
-								id={id}
-								body={body}
-								createdAt={`${dateCreated} ago`}
-							>
-								{user ? (
-									<NotificationImage src={avatar} />
-								) : null}
-							</Notification>
-						);
-					})}
-					<button onClick={loadMore}>load more</button>
-				</>
-			))}
+								return (
+									<Notification
+										id={id}
+										body={body}
+										createdAt={`${dateCreated} ago`}
+									>
+										{user ? (
+											<NotificationImage src={avatar} />
+										) : null}
+									</Notification>
+								);
+							})}
+						</>
+				  ))
+				: notificationsInfoQuery.data?.data.map(
+						(notifications: INotification) => {
+							const { id, body, createdAt, user } = notifications;
 
-			{unreadNotifications && (
+							const dateCreated = formatDistanceToNow(
+								new Date(createdAt)
+							);
+
+							return (
+								<Notification
+									id={id}
+									body={body}
+									createdAt={`${dateCreated} ago`}
+								>
+									{user ? (
+										<NotificationImage src={avatar} />
+									) : null}
+								</Notification>
+							);
+						}
+				  )}
+			{hasNextPage && (
+				<button onClick={() => fetchNextPage()}>load more</button>
+			)}
+
+			{/* {unreadNotifications && (
 				<>
 					{unreadNotificationsQuery.data?.pages.map((page) => {
 						return (
-							<Fragment>
+							<>
 								{page.data.map(
 									(unreadNotifications: INotification) => {
 										const { id, body, createdAt, user } =
@@ -195,11 +243,11 @@ const Notifications = () => {
 										);
 									}
 								)}
-							</Fragment>
+							</>
 						);
 					})}
 				</>
-			)}
+			)} */}
 		</NotificationsStyled>
 	);
 };

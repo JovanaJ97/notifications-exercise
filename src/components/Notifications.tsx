@@ -33,11 +33,11 @@ const getNotifications = async (
 	limit: number,
 	isItSeen: boolean
 ) => {
-	const seenParam = isItSeen ? 'true' : 'false';
+	const seenParam = isItSeen ? 'seen=false' : '';
 
 	const response = await axios
 		.get(
-			`http://localhost:3001/notifications?_page=${page}&_limit=${limit}&_sort=createdAt&_order=desc&_seen=${seenParam}`
+			`http://localhost:3001/notifications?_page=${page}&_limit=${limit}&_sort=createdAt&_order=desc&${seenParam}`
 		)
 		.then((res) => {
 			console.log(res.data);
@@ -47,22 +47,9 @@ const getNotifications = async (
 	return response;
 };
 
-// const getUnreadNotifications = async () => {
-// 	const response = await axios
-// 		.get(
-// 			`http://localhost:3001/notifications?seen=false&_sort=createdAt&_order=desc`
-// 		)
-// 		.then((res) => {
-// 			return res;
-// 		});
-
-// 	return response;
-// };
-
 const Notifications = () => {
 	const { notificationsInfoQuery, totalUnseen } = useNotificationAPI();
 	const { isLoading } = notificationsInfoQuery;
-	const [allNotifications, setShowAllNotifications] = useState<boolean>(true);
 	const [unread, setUnread] = useState(false);
 	const [isSeen, setIsSeen] = useState<boolean>(false);
 
@@ -72,7 +59,7 @@ const Notifications = () => {
 			unread === true ? 'unread' : 'all',
 		],
 		queryFn: ({ pageParam }) =>
-			getNotifications(pageParam, notificationLimit, !allNotifications),
+			getNotifications(pageParam, notificationLimit, unread),
 		enabled: true,
 		staleTime: Infinity,
 		gcTime: Infinity,
@@ -81,26 +68,10 @@ const Notifications = () => {
 			const nextPage = parseLinkHeader(lastPage.headers['link']);
 
 			if (nextPage) {
-				if (nextPage.next._page === '10') {
-					return nextPage.last._page;
-				} else {
-					return nextPage.next._page;
-				}
+				return nextPage.next._page;
 			}
 		},
 	});
-
-	// const unreadNotificationsQuery = useInfiniteQuery({
-	// 	queryKey: ['unread-notifications'],
-	// 	queryFn: () => getUnreadNotifications(),
-	// 	enabled: true,
-	// 	staleTime: Infinity,
-	// 	gcTime: Infinity,
-	// 	initialPageParam: '1',
-	// 	getNextPageParam: (lastPage) => {
-	// 		return lastPage.data;
-	// 	},
-	// });
 
 	const { fetchNextPage, hasNextPage, data } = notificationsQuery;
 
@@ -115,8 +86,6 @@ const Notifications = () => {
 					return res.data;
 				}),
 	});
-
-	console.log(notificationsQuery);
 
 	return (
 		<NotificationsStyled>
@@ -145,20 +114,8 @@ const Notifications = () => {
 						</button>
 					</NotificationsUpperContent>
 					<NotificationsBottomContent>
-						<button
-							onClick={() => [
-								setShowAllNotifications(true),
-								setUnread(false),
-							]}
-						>
-							All
-						</button>
-						<button
-							onClick={() => [
-								setShowAllNotifications(false),
-								setUnread(true),
-							]}
-						>
+						<button onClick={() => [setUnread(false)]}>All</button>
+						<button onClick={() => [setUnread(true)]}>
 							Unread
 						</button>
 					</NotificationsBottomContent>

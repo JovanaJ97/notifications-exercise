@@ -170,41 +170,6 @@ const Notifications = () => {
 			{hasNextPage && (
 				<button onClick={() => fetchNextPage()}>load more</button>
 			)}
-
-			{/* {unreadNotifications && (
-				<>
-					{unreadNotificationsQuery.data?.pages.map((page) => {
-						return (
-							<>
-								{page.data.map(
-									(unreadNotifications: INotification) => {
-										const { id, body, createdAt, user } =
-											unreadNotifications;
-
-										const dateCreated = formatDistanceToNow(
-											new Date(createdAt)
-										);
-
-										return (
-											<Notification
-												id={id}
-												body={body}
-												createdAt={`${dateCreated} ago`}
-											>
-												{user ? (
-													<NotificationImage
-														src={avatar}
-													/>
-												) : null}
-											</Notification>
-										);
-									}
-								)}
-							</>
-						);
-					})}
-				</>
-			)} */}
 		</NotificationsStyled>
 	);
 };

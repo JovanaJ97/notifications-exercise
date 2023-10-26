@@ -2,7 +2,12 @@
 import { useState } from 'react';
 import formatDistanceToNow from 'date-fns/formatDistanceToNow';
 import axios from 'axios';
-import { useInfiniteQuery, useMutation } from '@tanstack/react-query';
+import {
+	queryOptions,
+	useInfiniteQuery,
+	useMutation,
+	useQueryClient,
+} from '@tanstack/react-query';
 import { parseLinkHeader } from '../utils/parseLinkHeader';
 
 // Assets
@@ -23,6 +28,7 @@ import {
 	NotificationsUpperContent,
 	CountSpanStyled,
 	NotificationsBottomContent,
+	BlueDotBtn,
 } from './style';
 import { NotificationImage } from './Notification/style';
 
@@ -40,7 +46,6 @@ const getNotifications = async (
 			`http://localhost:3001/notifications?_page=${page}&_limit=${limit}&_sort=createdAt&_order=desc&${seenParam}`
 		)
 		.then((res) => {
-			console.log(res.data);
 			return res;
 		});
 
@@ -52,6 +57,8 @@ const Notifications = () => {
 	const { isLoading } = notificationsInfoQuery;
 	const [unread, setUnread] = useState(false);
 	const [isSeen, setIsSeen] = useState<boolean>(false);
+	const [id, getId] = useState<undefined | number>();
+	const queryClient = useQueryClient();
 
 	const notificationsQuery = useInfiniteQuery({
 		queryKey: [
@@ -68,7 +75,7 @@ const Notifications = () => {
 			const nextPage = parseLinkHeader(lastPage.headers['link']);
 
 			if (nextPage) {
-				return nextPage.next._page;
+				return nextPage?.next?._page;
 			}
 		},
 	});
@@ -82,10 +89,90 @@ const Notifications = () => {
 					seen: isSeen,
 				})
 				.then((res) => {
-					console.log(res.data);
 					return res.data;
 				}),
+		onSuccess: () =>
+			queryClient.invalidateQueries({
+				queryKey: ['unread'],
+			}),
 	});
+
+	// console.log(allNotificationsSeen);
+
+	// const markNotificationAsSeen = useMutation({
+	// 	mutationFn: (isSeen: boolean) =>
+	// 		axios.patch(`http://localhost:3001/notifications/${id}`, {
+	// 			seen: isSeen,
+	// 		}),
+	// 	onSuccess: () =>
+	// 		queryClient.invalidateQueries({
+	// 			queryKey: ['all'],
+	// 		}),
+	// });
+
+	// const log = queryClient.getQueryData(['notifications-infinite', 'all']);
+
+	// if (log) {
+	// 	console.log(
+	// 		log.pages.flatMap((page) => {
+	// 			return page.data;
+	// 		})
+	// 	);
+	// }
+
+	const markAsSeenMutation = useMutation({
+		mutationFn: (isSeen: boolean) =>
+			axios.patch(`http://localhost:3001/notifications/${id}`, {
+				seen: isSeen,
+			}),
+
+		onMutate: async (isSeen: boolean) => {
+			setIsSeen(true),
+				await queryClient.cancelQueries({
+					queryKey: ['notifications-infinite', 'all'],
+				});
+
+			const previousSeen = queryClient.getQueryData([
+				'notifications-infinite',
+				'all',
+			]);
+
+			if (previousSeen) {
+				queryClient.setQueryData(['notifications-infinite', 'all'], {
+					...previousSeen,
+					newSeen: { seen: isSeen },
+				});
+			}
+
+			return { previousSeen };
+		},
+
+		onError: (err, variables, context) => {
+			if (context?.previousSeen) {
+				queryClient.setQueryData(
+					['notifications-infinite', 'all'],
+					context.previousSeen
+				);
+			}
+		},
+
+		onSettled: () => {
+			queryClient.invalidateQueries({
+				queryKey: ['notifications-infinite', 'all'],
+			});
+		},
+	});
+
+	console.log(markAsSeenMutation);
+
+	// console.log(totalUnseen);
+	console.log(isSeen);
+	// console.log(unread);
+	// console.log(totalUnseen);
+	// console.log(notificationsInfoQuery.data);
+
+	//console.log(id);
+	// console.log(isSeen);
 
 	return (
 		<NotificationsStyled>
@@ -98,26 +185,26 @@ const Notifications = () => {
 								<CountSpanStyled $count className="count">
 									{totalUnseen}
 								</CountSpanStyled>
-							) : (
+							) : totalUnseen === 0 ? null : (
 								<CountSpanStyled className="count">
 									...
 								</CountSpanStyled>
 							)}
 						</div>
-						<button
-							onClick={() => [
-								setIsSeen(true),
-								allNotificationsSeen.mutate(isSeen),
-							]}
-						>
-							Mark all as unread
-						</button>
+						{unread && (
+							<button
+								onClick={() => [
+									setIsSeen(true),
+									allNotificationsSeen.mutate(isSeen),
+								]}
+							>
+								Mark all as unread
+							</button>
+						)}
 					</NotificationsUpperContent>
 					<NotificationsBottomContent>
-						<button onClick={() => [setUnread(false)]}>All</button>
-						<button onClick={() => [setUnread(true)]}>
-							Unread
-						</button>
+						<button onClick={() => setUnread(false)}>All</button>
+						<button onClick={() => setUnread(true)}>Unread</button>
 					</NotificationsBottomContent>
 				</>
 			) : null}
@@ -125,7 +212,7 @@ const Notifications = () => {
 				? data?.pages.map((page) => (
 						<>
 							{page.data.map((notifications: INotification) => {
-								const { id, body, createdAt, user } =
+								const { id, body, createdAt, user, seen } =
 									notifications;
 
 								const dateCreated = formatDistanceToNow(
@@ -141,6 +228,17 @@ const Notifications = () => {
 										{user ? (
 											<NotificationImage src={avatar} />
 										) : null}
+										{seen === false && (
+											<BlueDotBtn
+												onClick={() => [
+													getId(id),
+													setIsSeen(true),
+													markAsSeenMutation.mutate(
+														isSeen
+													),
+												]}
+											/>
+										)}
 									</Notification>
 								);
 							})}
@@ -148,7 +246,8 @@ const Notifications = () => {
 				  ))
 				: notificationsInfoQuery.data?.data.map(
 						(notifications: INotification) => {
-							const { id, body, createdAt, user } = notifications;
+							const { id, body, createdAt, user, seen } =
+								notifications;
 
 							const dateCreated = formatDistanceToNow(
 								new Date(createdAt)
@@ -163,6 +262,17 @@ const Notifications = () => {
 									{user ? (
 										<NotificationImage src={avatar} />
 									) : null}
+									{seen === false && (
+										<BlueDotBtn
+											onClick={() => [
+												getId(id),
+												setIsSeen(true),
+												markAsSeenMutation.mutate(
+													isSeen
+												),
+											]}
+										/>
+									)}
 								</Notification>
 							);
 						}

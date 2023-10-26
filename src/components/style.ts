@@ -86,3 +86,15 @@ export const NotificationsBottomContent = styled.div`
 	justify-content: flex-start;
 	padding: 16px 24px;
 `;
+
+export const BlueDotBtn = styled.button`
+	width: 14px;
+	height: 14px;
+	border-radius: 50%;
+	background-color: ${colors.azure};
+	cursor: pointer;
+	position: absolute;
+	right: 16px;
+	top: 50%;
+	transform: translateY(-50%);
+`;

@@ -39,7 +39,7 @@ const Header = () => {
 				<img src={bell} />
 				{!isLoading && totalUnseen ? (
 					<CountSpanStyled $count>{totalUnseen}</CountSpanStyled>
-				) : (
+				) : totalUnseen === 0 ? null : (
 					<CountSpanStyled>...</CountSpanStyled>
 				)}
 			</BellButtonStyled>

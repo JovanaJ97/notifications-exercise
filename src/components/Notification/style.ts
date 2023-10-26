@@ -6,6 +6,7 @@ export const NotificationStyled = styled.div`
 	padding: 16px;
 	padding-left: 24px;
 	border-bottom: 1px solid ${colors.notificationBorder};
+	position: relative;
 `;
 
 export const NotificationImage = styled.img`

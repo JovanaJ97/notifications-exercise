@@ -15,7 +15,10 @@ export interface IContext {
 }
 
 export interface INotificationContext {
-	notificationsInfoQuery: UseQueryResult<AxiosResponse, Error>;
+	notificationsInfoQuery: UseQueryResult<
+		void | AxiosResponse<object, object>,
+		Error
+	>;
 	page: number;
 	setPage: React.Dispatch<React.SetStateAction<number>>;
 	totalCount: number | undefined;

@@ -27,7 +27,6 @@ const NotificationContextProvider = ({ children }: IContext) => {
 	const [page, setPage] = useState<number>(1);
 	const [totalCount, setTotalCount] = useState<number | undefined>();
 	const [totalUnseen, setTotalUnseen] = useState<number | undefined>();
-	// const [query, setQuery] = useState({});
 
 	const notificationsInfoQuery = useQuery({
 		queryKey: ['notifications'],
@@ -36,8 +35,6 @@ const NotificationContextProvider = ({ children }: IContext) => {
 		staleTime: Infinity,
 		gcTime: Infinity,
 	});
-
-	// console.log(notificationsInfoQuery);
 
 	// Setting total count and unseen notifications number
 	useEffect(() => {
@@ -49,9 +46,6 @@ const NotificationContextProvider = ({ children }: IContext) => {
 		);
 	}, [notificationsInfoQuery.data?.headers]);
 
-	// console.log(totalCount);
-	// console.log(totalUnseen);
-
 	return (
 		<NotificationContext.Provider
 			value={{
@@ -60,6 +54,7 @@ const NotificationContextProvider = ({ children }: IContext) => {
 				totalUnseen,
 				setPage,
 				page,
+				setTotalUnseen,
 			}}
 		>
 			{children}

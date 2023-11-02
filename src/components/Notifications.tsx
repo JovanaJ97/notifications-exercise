@@ -50,15 +50,15 @@ const getNotifications = async (
 		.then((res) => {
 			return res;
 		});
-
 	return response;
 };
 
 const Notifications = () => {
-	const { notificationsInfoQuery, totalUnseen } = useNotificationAPI();
+	const { notificationsInfoQuery, totalUnseen, setTotalUnseen } =
+		useNotificationAPI();
 	const { isLoading } = notificationsInfoQuery;
 	const [unread, setUnread] = useState(false);
-	const [dot, setDotRemove] = useState(false);
+	const [ids, setIds] = useState<number[]>([]);
 	const queryClient = useQueryClient();
 
 	const notificationsQuery = useInfiniteQuery({
@@ -92,15 +92,15 @@ const Notifications = () => {
 				.put(`http://localhost:3001/notifications`, isSeen)
 				.then((res) => {
 					return res.data;
+				})
+				.catch((err) => {
+					console.log(err);
 				}),
-		onError(error, variables, context) {
-			// console.log(error, variables, context);
+		onError() {
 			toast(`All notifications marked as read error`);
-			console.log(error);
 		},
-		onSettled: async (error, data) => {
-			// console.log(error, data);
-			// queryClient.clear();
+		onSuccess: async () => {
+			queryClient.clear();
 			toast(`All notifications marked as read`);
 		},
 	});
@@ -154,19 +154,19 @@ const Notifications = () => {
 		},
 	});
 
-	// console.log(markAsSeenMutation.variables);
-	// console.log(markAsSeenMutation.status);
+	const handleMarkAsRead = (id: number) => {
+		markAsSeenMutation.mutate(id);
+		setIds([...ids, id]);
+	};
 
-	// const notificationsData = data?.pages
-	// 	.flatMap((page) => page.data)
-	// 	.map((notification) => ({
-	// 		...notification,
-	// 		showDot: true,
-	// 	}));
-
-	// if (data) {
-	// 	console.log(notificationsData);
-	// }
+	useEffect(() => {
+		if (notificationsQuery !== undefined) {
+			data?.pages.flatMap((page) => {
+				setTotalUnseen(parseFloat(page.headers['x-unseen']));
+				return;
+			});
+		}
+	}, [data?.pages, notificationsQuery, setTotalUnseen]);
 
 	return (
 		<NotificationsStyled>
@@ -192,7 +192,7 @@ const Notifications = () => {
 									allNotificationsSeen.reset(),
 								]}
 							>
-								Mark all as unread
+								Mark all as read
 							</button>
 						) : null}
 					</NotificationsUpperContent>
@@ -222,14 +222,12 @@ const Notifications = () => {
 										{user ? (
 											<NotificationImage src={avatar} />
 										) : null}
-										{dot === false && seen === false ? (
+
+										{seen == false && !ids.includes(id) ? (
 											<BlueDotBtn
-												onClick={() => [
-													markAsSeenMutation.mutate(
-														id
-													),
-													setDotRemove(true),
-												]}
+												onClick={() =>
+													handleMarkAsRead(id)
+												}
 											/>
 										) : null}
 									</Notification>
@@ -255,13 +253,9 @@ const Notifications = () => {
 									{user ? (
 										<NotificationImage src={avatar} />
 									) : null}
-
-									{dot === false && seen === false ? (
+									{seen === false && !ids.includes(id) ? (
 										<BlueDotBtn
-											onClick={() => [
-												markAsSeenMutation.mutate(id),
-												setDotRemove(true),
-											]}
+											onClick={() => handleMarkAsRead(id)}
 										/>
 									) : null}
 								</Notification>

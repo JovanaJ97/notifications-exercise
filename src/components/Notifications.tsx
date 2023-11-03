@@ -107,6 +107,9 @@ const Notifications = () => {
 	const markAsSeenMutation = useMutation({
 		mutationFn: (id: number) =>
 			axios.patch(`http://localhost:3001/notifications/${id}`),
+		onMutate(variables) {
+			setIds([...ids, variables]);
+		},
 
 		onError: (err, variables) => {
 			if (err) {
@@ -129,17 +132,6 @@ const Notifications = () => {
 			toast(`Notification ${variables} marked as read`);
 		},
 	});
-
-	const handleMarkAsRead = (id: number) => {
-		markAsSeenMutation.mutate(id);
-		setIds([...ids, id]);
-
-		if (!markAsSeenMutation.isError) {
-			setIds([...ids, id]);
-		} else {
-			return;
-		}
-	};
 
 	useEffect(() => {
 		if (notificationsQuery !== undefined) {
@@ -219,7 +211,9 @@ const Notifications = () => {
 												!ids.includes(id) ? (
 													<BlueDotBtn
 														onClick={() =>
-															handleMarkAsRead(id)
+															markAsSeenMutation.mutate(
+																id
+															)
 														}
 													/>
 												) : null}
@@ -251,7 +245,9 @@ const Notifications = () => {
 									) : null}
 									{seen === false && !ids.includes(id) ? (
 										<BlueDotBtn
-											onClick={() => handleMarkAsRead(id)}
+											onClick={() =>
+												markAsSeenMutation.mutate(id)
+											}
 										/>
 									) : null}
 								</Notification>

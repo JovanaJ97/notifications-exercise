@@ -1,5 +1,5 @@
 /* eslint-disable no-mixed-spaces-and-tabs */
-import { useEffect, useState } from 'react';
+import { Fragment, useEffect, useState } from 'react';
 import formatDistanceToNow from 'date-fns/formatDistanceToNow';
 import axios from 'axios';
 import {
@@ -54,11 +54,10 @@ const getNotifications = async (
 };
 
 const Notifications = () => {
-	const { notificationsInfoQuery, totalUnseen, setTotalUnseen } =
+	const { notificationsInfoQuery, totalUnseen, setTotalUnseen, ids, setIds } =
 		useNotificationAPI();
 	const { isLoading } = notificationsInfoQuery;
 	const [unread, setUnread] = useState(false);
-	const [ids, setIds] = useState<number[]>([]);
 	const queryClient = useQueryClient();
 
 	const notificationsQuery = useInfiniteQuery({
@@ -109,35 +108,12 @@ const Notifications = () => {
 		mutationFn: (id: number) =>
 			axios.patch(`http://localhost:3001/notifications/${id}`),
 
-		onMutate: async () => {
-			// Cancel any outgoing refetches (so they don't overwrite our optimistic update)
-			await queryClient.cancelQueries({
-				queryKey: ['notifications-infinite', 'all'],
-			});
-
-			// Snapshot the previous value
-			const previousSeen = queryClient.getQueryData([
-				'notifications-infinite',
-				'all',
-			]);
-
-			// Optimistically update to the new value
-			if (previousSeen) {
-				queryClient.setQueryData(['notifications-infinite', 'all'], {
-					...previousSeen,
-					newSeen: { seen: true },
+		onError: (err, variables) => {
+			if (err) {
+				const updatedIds = ids.filter((id) => {
+					return id !== variables;
 				});
-			}
-			return { previousSeen };
-		},
-
-		onError: (err, variables, context) => {
-			// If the mutation fails, use the context returned from onMutate to roll back
-			if (context?.previousSeen) {
-				queryClient.setQueryData(
-					['notifications-infinite', 'all'],
-					context.previousSeen
-				);
+				setIds([...updatedIds]);
 			}
 
 			toast(`Notification ${variables} marked as read error`);
@@ -157,6 +133,12 @@ const Notifications = () => {
 	const handleMarkAsRead = (id: number) => {
 		markAsSeenMutation.mutate(id);
 		setIds([...ids, id]);
+
+		if (!markAsSeenMutation.isError) {
+			setIds([...ids, id]);
+		} else {
+			return;
+		}
 	};
 
 	useEffect(() => {
@@ -203,38 +185,51 @@ const Notifications = () => {
 				</>
 			) : null}
 			{data
-				? data?.pages.map((page) => (
-						<>
-							{page.data.map((notifications: INotification) => {
-								const { id, body, createdAt, user, seen } =
-									notifications;
+				? data?.pages.map((page) => {
+						return (
+							<Fragment key={page.headers.link}>
+								{page.data.map(
+									(notifications: INotification) => {
+										const {
+											id,
+											body,
+											createdAt,
+											user,
+											seen,
+										} = notifications;
 
-								const dateCreated = formatDistanceToNow(
-									new Date(createdAt)
-								);
+										const dateCreated = formatDistanceToNow(
+											new Date(createdAt)
+										);
 
-								return (
-									<Notification
-										id={id}
-										body={body}
-										createdAt={`${dateCreated} ago`}
-									>
-										{user ? (
-											<NotificationImage src={avatar} />
-										) : null}
+										return (
+											<Notification
+												id={id}
+												body={body}
+												createdAt={`${dateCreated} ago`}
+												key={id}
+											>
+												{user ? (
+													<NotificationImage
+														src={avatar}
+													/>
+												) : null}
 
-										{seen == false && !ids.includes(id) ? (
-											<BlueDotBtn
-												onClick={() =>
-													handleMarkAsRead(id)
-												}
-											/>
-										) : null}
-									</Notification>
-								);
-							})}
-						</>
-				  ))
+												{seen == false &&
+												!ids.includes(id) ? (
+													<BlueDotBtn
+														onClick={() =>
+															handleMarkAsRead(id)
+														}
+													/>
+												) : null}
+											</Notification>
+										);
+									}
+								)}
+							</Fragment>
+						);
+				  })
 				: notificationsInfoQuery.data?.data.map(
 						(notifications: INotification) => {
 							const { id, body, createdAt, user, seen } =
@@ -249,6 +244,7 @@ const Notifications = () => {
 									id={id}
 									body={body}
 									createdAt={`${dateCreated} ago`}
+									key={id}
 								>
 									{user ? (
 										<NotificationImage src={avatar} />

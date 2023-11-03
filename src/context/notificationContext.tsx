@@ -27,6 +27,7 @@ const NotificationContextProvider = ({ children }: IContext) => {
 	const [page, setPage] = useState<number>(1);
 	const [totalCount, setTotalCount] = useState<number | undefined>();
 	const [totalUnseen, setTotalUnseen] = useState<number | undefined>();
+	const [ids, setIds] = useState<number[]>([]);
 
 	const notificationsInfoQuery = useQuery({
 		queryKey: ['notifications'],
@@ -55,6 +56,8 @@ const NotificationContextProvider = ({ children }: IContext) => {
 				setPage,
 				page,
 				setTotalUnseen,
+				ids,
+				setIds,
 			}}
 		>
 			{children}

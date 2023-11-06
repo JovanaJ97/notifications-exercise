@@ -83,7 +83,14 @@ const Notifications = () => {
 		},
 	});
 
-	const { fetchNextPage, hasNextPage, data } = notificationsQuery;
+	const {
+		fetchNextPage,
+		hasNextPage,
+		data,
+		isFetching,
+		isFetchingNextPage,
+		isFetched,
+	} = notificationsQuery;
 
 	const allNotificationsSeen = useMutation({
 		mutationFn: (isSeen: boolean) =>
@@ -176,86 +183,91 @@ const Notifications = () => {
 					</NotificationsBottomContent>
 				</>
 			) : null}
-			{data
-				? data?.pages.map((page) => {
-						return (
-							<Fragment key={page.headers.link}>
-								{page.data.map(
-									(notifications: INotification) => {
-										const {
-											id,
-											body,
-											createdAt,
-											user,
-											seen,
-										} = notifications;
+			{data && isFetched ? (
+				data?.pages.map((page) => {
+					return (
+						<Fragment key={page.headers.link}>
+							{page.data.map((notifications: INotification) => {
+								const { id, body, createdAt, user, seen } =
+									notifications;
 
-										const dateCreated = formatDistanceToNow(
-											new Date(createdAt)
-										);
+								const dateCreated = formatDistanceToNow(
+									new Date(createdAt)
+								);
 
-										return (
-											<Notification
-												id={id}
-												body={body}
-												createdAt={`${dateCreated} ago`}
-												key={id}
-											>
-												{user ? (
-													<NotificationImage
-														src={avatar}
-													/>
-												) : null}
+								return (
+									<Notification
+										id={id}
+										body={body}
+										createdAt={`${dateCreated} ago`}
+										key={id}
+									>
+										{user ? (
+											<NotificationImage src={avatar} />
+										) : null}
 
-												{seen == false &&
-												!ids.includes(id) ? (
-													<BlueDotBtn
-														onClick={() =>
-															markAsSeenMutation.mutate(
-																id
-															)
-														}
-													/>
-												) : null}
-											</Notification>
-										);
-									}
-								)}
-							</Fragment>
+										{seen == false && !ids.includes(id) ? (
+											<BlueDotBtn
+												onClick={() =>
+													markAsSeenMutation.mutate(
+														id
+													)
+												}
+											/>
+										) : null}
+									</Notification>
+								);
+							})}
+						</Fragment>
+					);
+				})
+			) : isFetching ? (
+				<div>loading</div>
+			) : (
+				notificationsInfoQuery.data?.data.map(
+					(notifications: INotification) => {
+						const { id, body, createdAt, user, seen } =
+							notifications;
+
+						const dateCreated = formatDistanceToNow(
+							new Date(createdAt)
 						);
-				  })
-				: notificationsInfoQuery.data?.data.map(
-						(notifications: INotification) => {
-							const { id, body, createdAt, user, seen } =
-								notifications;
 
-							const dateCreated = formatDistanceToNow(
-								new Date(createdAt)
-							);
-
-							return (
-								<Notification
-									id={id}
-									body={body}
-									createdAt={`${dateCreated} ago`}
-									key={id}
-								>
-									{user ? (
-										<NotificationImage src={avatar} />
-									) : null}
-									{seen === false && !ids.includes(id) ? (
-										<BlueDotBtn
-											onClick={() =>
-												markAsSeenMutation.mutate(id)
-											}
-										/>
-									) : null}
-								</Notification>
-							);
-						}
-				  )}
+						return (
+							<Notification
+								id={id}
+								body={body}
+								createdAt={`${dateCreated} ago`}
+								key={id}
+							>
+								{user ? (
+									<NotificationImage src={avatar} />
+								) : null}
+								{seen === false && !ids.includes(id) ? (
+									<BlueDotBtn
+										onClick={() =>
+											markAsSeenMutation.mutate(id)
+										}
+									/>
+								) : null}
+							</Notification>
+						);
+					}
+				)
+			)}
 			{hasNextPage && (
-				<button onClick={() => fetchNextPage()}>load more</button>
+				<>
+					{isFetchingNextPage ? (
+						<div>...</div>
+					) : (
+						<button
+							onClick={() => fetchNextPage()}
+							disabled={isFetchingNextPage}
+						>
+							load more
+						</button>
+					)}
+				</>
 			)}
 		</NotificationsStyled>
 	);

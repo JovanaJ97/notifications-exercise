@@ -56,6 +56,7 @@ const NotificationContextProvider = ({ children }: IContext) => {
 				setPage,
 				page,
 				setTotalUnseen,
+				setTotalCount,
 				ids,
 				setIds,
 			}}

@@ -54,8 +54,14 @@ const getNotifications = async (
 };
 
 const Notifications = () => {
-	const { notificationsInfoQuery, totalUnseen, setTotalUnseen, ids, setIds } =
-		useNotificationAPI();
+	const {
+		notificationsInfoQuery,
+		totalUnseen,
+		setTotalUnseen,
+		ids,
+		setIds,
+		setTotalCount,
+	} = useNotificationAPI();
 	const { isLoading } = notificationsInfoQuery;
 	const [unread, setUnread] = useState(false);
 	const queryClient = useQueryClient();
@@ -144,10 +150,11 @@ const Notifications = () => {
 		if (notificationsQuery !== undefined) {
 			data?.pages.flatMap((page) => {
 				setTotalUnseen(parseFloat(page.headers['x-unseen']));
+				setTotalCount(parseFloat(page.headers['x-total']));
 				return;
 			});
 		}
-	}, [data?.pages, notificationsQuery, setTotalUnseen]);
+	}, [data?.pages, notificationsQuery, setTotalUnseen, setTotalCount]);
 
 	return (
 		<NotificationsStyled>

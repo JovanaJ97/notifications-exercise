@@ -13,7 +13,8 @@ export default createGlobalStyle`
     }
     
     html,
-    body {
+    body,
+    #root {
         height: 100%;
     }
 
@@ -42,5 +43,9 @@ export default createGlobalStyle`
         border: none;
         background: transparent;
         cursor: pointer;
+    }
+
+    textarea {
+        font-family: inherit;
     }
 `;

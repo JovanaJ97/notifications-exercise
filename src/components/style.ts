@@ -11,7 +11,11 @@ export const HeaderStyled = styled.header`
 `;
 
 export const HomepageWrapperStyled = styled.div`
+	display: flex;
+	justify-content: center;
+	align-items: center;
 	width: 100%;
+	height: 100%;
 `;
 
 export const NotificationCountStyled = styled.div`
@@ -36,6 +40,7 @@ export const NotificationsStyled = styled.div`
 	position: absolute;
 	top: 72px;
 	right: 0;
+	z-index: 99;
 	background-color: ${colors.white};
 	overflow-y: scroll;
 	box-shadow: 0px 0px 0px 0px #0000000f, 0px 3px 6px 0px #0000000f,

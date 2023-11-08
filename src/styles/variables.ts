@@ -6,4 +6,6 @@ export const colors = {
 	darkerWhite: '#FBFBFB',
 	slateGray: '#696F8C',
 	notificationBorder: '#DCDEE4',
+	labelColor: '#696F8C',
+	inputBorder: '#F2F2F2',
 };

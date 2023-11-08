@@ -54,8 +54,14 @@ const getNotifications = async (
 };
 
 const Notifications = () => {
-	const { notificationsInfoQuery, totalUnseen, setTotalUnseen, ids, setIds } =
-		useNotificationAPI();
+	const {
+		notificationsInfoQuery,
+		totalUnseen,
+		setTotalUnseen,
+		ids,
+		setIds,
+		setTotalCount,
+	} = useNotificationAPI();
 	const { isLoading } = notificationsInfoQuery;
 	const [unread, setUnread] = useState(false);
 	const queryClient = useQueryClient();
@@ -131,6 +137,7 @@ const Notifications = () => {
 
 		onSuccess(data, variables) {
 			// Prevent active queries from refetching on success
+
 			queryClient.invalidateQueries({
 				queryKey: ['notifications-infinite'],
 				refetchType: 'none',
@@ -139,15 +146,6 @@ const Notifications = () => {
 			toast(`Notification ${variables} marked as read`);
 		},
 	});
-
-	useEffect(() => {
-		if (notificationsQuery !== undefined) {
-			data?.pages.flatMap((page) => {
-				setTotalUnseen(parseFloat(page.headers['x-unseen']));
-				return;
-			});
-		}
-	}, [data?.pages, notificationsQuery, setTotalUnseen]);
 
 	return (
 		<NotificationsStyled>

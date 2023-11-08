@@ -22,8 +22,9 @@ export interface INotificationContext {
 	page: number;
 	setPage: React.Dispatch<React.SetStateAction<number>>;
 	totalCount: number | undefined;
-	setTotalUnseen: React.Dispatch<React.SetStateAction<number | undefined>>;
+	setTotalCount: React.Dispatch<React.SetStateAction<number | undefined>>;
 	totalUnseen: number | undefined;
+	setTotalUnseen: React.Dispatch<React.SetStateAction<number | undefined>>;
 	ids: number[];
 	setIds: React.Dispatch<React.SetStateAction<number[]>>;
 }

@@ -15,7 +15,7 @@ export const HomepageWrapperStyled = styled.div`
 	justify-content: center;
 	align-items: center;
 	width: 100%;
-	height: 100%;
+	height: calc(100% - 78px);
 `;
 
 export const NotificationCountStyled = styled.div`

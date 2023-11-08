@@ -137,6 +137,7 @@ const Notifications = () => {
 
 		onSuccess(data, variables) {
 			// Prevent active queries from refetching on success
+
 			queryClient.invalidateQueries({
 				queryKey: ['notifications-infinite'],
 				refetchType: 'none',
@@ -145,16 +146,6 @@ const Notifications = () => {
 			toast(`Notification ${variables} marked as read`);
 		},
 	});
-
-	useEffect(() => {
-		if (notificationsQuery !== undefined) {
-			data?.pages.flatMap((page) => {
-				setTotalUnseen(parseFloat(page.headers['x-unseen']));
-				setTotalCount(parseFloat(page.headers['x-total']));
-				return;
-			});
-		}
-	}, [data?.pages, notificationsQuery, setTotalUnseen, setTotalCount]);
 
 	return (
 		<NotificationsStyled>

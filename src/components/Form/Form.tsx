@@ -8,6 +8,9 @@ interface IFormData {
 	user?: string;
 }
 
+// Context
+import { useNotificationAPI } from '../../context/notificationContext';
+
 // Styles
 import { FormWrapperStyled, SendBtnStyled } from './style';
 
@@ -15,6 +18,7 @@ const Form = () => {
 	const [user, setUser] = useState('');
 	const [message, setMessage] = useState('');
 	const queryClient = useQueryClient();
+	const { setTotalCount, setTotalUnseen } = useNotificationAPI();
 
 	const sendNotification = useMutation({
 		mutationFn: (newNotification: IFormData) =>
@@ -33,12 +37,30 @@ const Form = () => {
 				queryKey: ['notifications-infinite'],
 				refetchType: 'none',
 			});
+
+			setTotalCount((prevCount) => {
+				if (prevCount !== undefined) {
+					return prevCount + 1;
+				}
+			});
+			setTotalUnseen((prevSeen) => {
+				if (prevSeen !== undefined) {
+					return prevSeen + 1;
+				}
+			});
 		},
 	});
 
+	const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+		e.preventDefault();
+
+		setUser('');
+		setMessage('');
+	};
+
 	return (
 		<FormWrapperStyled>
-			<form onSubmit={(e) => e.preventDefault()}>
+			<form onSubmit={handleSubmit}>
 				<label htmlFor="user">User name</label>
 				<input
 					type="text"

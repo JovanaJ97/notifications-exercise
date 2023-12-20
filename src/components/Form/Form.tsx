@@ -1,15 +1,16 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import axios from 'axios';
 import { useState } from 'react';
+import { toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 // Interface
-interface IFormData {
-	body: string;
-	user?: string;
-}
+import { IFormData } from '../../types/types';
 
 // Context
 import { useNotificationAPI } from '../../context/notificationContext';
+
+// Requests
+import { sendNewNotification } from '../../requests/requests';
 
 // Styles
 import { FormWrapperStyled, SendBtnStyled } from './style';
@@ -22,14 +23,11 @@ const Form = () => {
 
 	const sendNotification = useMutation({
 		mutationFn: (newNotification: IFormData) =>
-			axios
-				.post(`http://localhost:3001/notifications`, newNotification)
-				.then((res) => {
-					return res.data;
-				})
-				.catch((err) => {
-					console.log(err);
-				}),
+			sendNewNotification(newNotification),
+
+		onError() {
+			toast('New notification creating error');
+		},
 
 		onSuccess() {
 			// Prevent active queries from refetching on success
@@ -48,6 +46,7 @@ const Form = () => {
 					return prevSeen + 1;
 				}
 			});
+			toast('New notification created successfully');
 		},
 	});
 

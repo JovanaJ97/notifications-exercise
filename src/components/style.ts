@@ -16,6 +16,7 @@ export const HomepageWrapperStyled = styled.div`
 	align-items: center;
 	width: 100%;
 	height: calc(100% - 78px);
+	padding: 20px;
 `;
 
 export const NotificationCountStyled = styled.div`
@@ -86,6 +87,29 @@ export const NotificationsUpperContent = styled.div`
 	}
 `;
 
+export const NotificationsButton = styled.button`
+	position: relative;
+
+	&::before {
+		content: '';
+		width: 100%;
+		height: 1px;
+		position: absolute;
+		bottom: 0;
+		left: 0;
+		background-color: ${colors.black};
+		opacity: 0;
+		visibility: hidden;
+	}
+
+	&.active-btn {
+		&::before {
+			opacity: 1;
+			visibility: visible;
+		}
+	}
+`;
+
 export const NotificationsBottomContent = styled.div`
 	display: flex;
 	justify-content: flex-start;
@@ -102,4 +126,22 @@ export const BlueDotBtn = styled.button`
 	right: 16px;
 	top: 50%;
 	transform: translateY(-50%);
+`;
+
+export const LoadMoreBtn = styled.button`
+	width: 100%;
+	padding: 5px 10px;
+	margin: 0 auto;
+	transition: opacity 0.25s ease;
+
+	&:hover {
+		opacity: 0.7;
+	}
+`;
+
+export const Loading = styled.div`
+	display: flex;
+	justify-content: center;
+	width: 100%;
+	padding: 5px 10px;
 `;

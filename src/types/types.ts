@@ -25,6 +25,11 @@ export interface INotificationContext {
 	setTotalCount: React.Dispatch<React.SetStateAction<number | undefined>>;
 	totalUnseen: number | undefined;
 	setTotalUnseen: React.Dispatch<React.SetStateAction<number | undefined>>;
-	ids: number[];
-	setIds: React.Dispatch<React.SetStateAction<number[]>>;
+	seenNotificationsIds: number[];
+	setSeenNotificationsIds: React.Dispatch<React.SetStateAction<number[]>>;
+}
+
+export interface IFormData {
+	body: string;
+	user?: string;
 }

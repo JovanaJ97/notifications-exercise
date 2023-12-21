@@ -1,7 +1,6 @@
 /* eslint-disable no-mixed-spaces-and-tabs */
 import { Fragment, useEffect, useState } from 'react';
 import formatDistanceToNow from 'date-fns/formatDistanceToNow';
-import axios from 'axios';
 import {
 	useInfiniteQuery,
 	useMutation,
@@ -24,6 +23,13 @@ import { INotification } from '../types/types';
 // Components
 import Notification from './Notification/Notification';
 
+// Requests
+import {
+	getNotifications,
+	markAllNotificationsAsSeen,
+	markSingleNotificationAsSeen,
+} from '../requests/requests';
+
 // Styles
 import {
 	NotificationsStyled,
@@ -31,35 +37,21 @@ import {
 	CountSpanStyled,
 	NotificationsBottomContent,
 	BlueDotBtn,
+	NotificationsButton,
+	LoadMoreBtn,
+	Loading,
 } from './style';
 import { NotificationImage } from './Notification/style';
 
 const notificationLimit = 10;
-
-const getNotifications = async (
-	page: string,
-	limit: number,
-	isItSeen: boolean
-) => {
-	const seenParam = isItSeen ? '&seen=false' : '';
-
-	const response = await axios
-		.get(
-			`http://localhost:3001/notifications?_page=${page}&_limit=${limit}&_sort=createdAt&_order=desc${seenParam}`
-		)
-		.then((res) => {
-			return res;
-		});
-	return response;
-};
 
 const Notifications = () => {
 	const {
 		notificationsInfoQuery,
 		totalUnseen,
 		setTotalUnseen,
-		ids,
-		setIds,
+		seenNotificationsIds,
+		setSeenNotificationsIds,
 		setTotalCount,
 	} = useNotificationAPI();
 	const { isLoading } = notificationsInfoQuery;
@@ -96,18 +88,11 @@ const Notifications = () => {
 		isFetching,
 		isFetchingNextPage,
 		isFetched,
+		isError,
 	} = notificationsQuery;
 
 	const allNotificationsSeen = useMutation({
-		mutationFn: (isSeen: boolean) =>
-			axios
-				.put(`http://localhost:3001/notifications`, isSeen)
-				.then((res) => {
-					return res.data;
-				})
-				.catch((err) => {
-					console.log(err);
-				}),
+		mutationFn: (isSeen: boolean) => markAllNotificationsAsSeen(isSeen),
 		onError() {
 			toast(`All notifications marked as read error`);
 		},
@@ -118,34 +103,53 @@ const Notifications = () => {
 	});
 
 	const markAsSeenMutation = useMutation({
-		mutationFn: (id: number) =>
-			axios.patch(`http://localhost:3001/notifications/${id}`),
+		mutationFn: (id: number) => markSingleNotificationAsSeen(id),
 		onMutate(variables) {
-			setIds([...ids, variables]);
+			setSeenNotificationsIds([...seenNotificationsIds, variables]);
 		},
 
 		onError: (err, variables) => {
 			if (err) {
-				const updatedIds = ids.filter((id) => {
+				const updatedIds = seenNotificationsIds.filter((id) => {
 					return id !== variables;
 				});
-				setIds([...updatedIds]);
+				setSeenNotificationsIds([...updatedIds]);
 			}
 
 			toast(`Notification ${variables} marked as read error`);
 		},
 
 		onSuccess(data, variables) {
-			// Prevent active queries from refetching on success
-
-			queryClient.invalidateQueries({
-				queryKey: ['notifications-infinite'],
-				refetchType: 'none',
+			setTotalUnseen((prevSeen) => {
+				if (prevSeen !== undefined) {
+					return prevSeen - 1;
+				}
 			});
 
 			toast(`Notification ${variables} marked as read`);
 		},
 	});
+
+	useEffect(() => {
+		if (
+			notificationsQuery !== undefined &&
+			notificationsInfoQuery.isLoading
+		) {
+			setTotalUnseen(parseFloat(data?.pages[0].headers['x-unseen']));
+			setTotalCount(parseFloat(data?.pages[0].headers['x-total']));
+		}
+
+		if (isError) {
+			toast('Loading notifications failed');
+		}
+	}, [
+		data?.pages,
+		notificationsQuery,
+		setTotalCount,
+		setTotalUnseen,
+		notificationsInfoQuery,
+		isError,
+	]);
 
 	return (
 		<NotificationsStyled>
@@ -154,6 +158,7 @@ const Notifications = () => {
 					<NotificationsUpperContent>
 						<div className="left">
 							<p>Inbox</p>
+
 							{!isLoading && totalUnseen ? (
 								<CountSpanStyled $count className="count">
 									{totalUnseen}
@@ -176,11 +181,27 @@ const Notifications = () => {
 						) : null}
 					</NotificationsUpperContent>
 					<NotificationsBottomContent>
-						<button onClick={() => setUnread(false)}>All</button>
-						<button onClick={() => setUnread(true)}>Unread</button>
+						<NotificationsButton
+							onClick={() => setUnread(false)}
+							className={`${!unread ? 'active-btn' : ''}`}
+						>
+							All
+						</NotificationsButton>
+						<NotificationsButton
+							onClick={() => setUnread(true)}
+							className={`${unread ? 'active-btn' : ''}`}
+						>
+							Unread
+						</NotificationsButton>
 					</NotificationsBottomContent>
 				</>
 			) : null}
+			{notificationsQuery.isStale && !notificationsQuery.isLoading && (
+				<LoadMoreBtn onClick={() => notificationsQuery.refetch()}>
+					you have new notifications
+				</LoadMoreBtn>
+			)}
+
 			{data && isFetched ? (
 				data?.pages.map((page) => {
 					return (
@@ -204,7 +225,8 @@ const Notifications = () => {
 											<NotificationImage src={avatar} />
 										) : null}
 
-										{seen == false && !ids.includes(id) ? (
+										{seen == false &&
+										!seenNotificationsIds.includes(id) ? (
 											<BlueDotBtn
 												onClick={() =>
 													markAsSeenMutation.mutate(
@@ -220,7 +242,7 @@ const Notifications = () => {
 					);
 				})
 			) : isFetching ? (
-				<div>loading</div>
+				<Loading>loading</Loading>
 			) : (
 				notificationsInfoQuery.data?.data.map(
 					(notifications: INotification) => {
@@ -241,7 +263,8 @@ const Notifications = () => {
 								{user ? (
 									<NotificationImage src={avatar} />
 								) : null}
-								{seen === false && !ids.includes(id) ? (
+								{seen === false &&
+								!seenNotificationsIds.includes(id) ? (
 									<BlueDotBtn
 										onClick={() =>
 											markAsSeenMutation.mutate(id)
@@ -256,14 +279,14 @@ const Notifications = () => {
 			{hasNextPage && (
 				<>
 					{isFetchingNextPage ? (
-						<div>...</div>
+						<Loading>...</Loading>
 					) : (
-						<button
+						<LoadMoreBtn
 							onClick={() => fetchNextPage()}
 							disabled={isFetchingNextPage}
 						>
 							load more
-						</button>
+						</LoadMoreBtn>
 					)}
 				</>
 			)}
